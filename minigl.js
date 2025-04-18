@@ -3,7 +3,7 @@
 *  https://evanw.github.io/glfx.js/
 */
 
-import * as Filters from './minigl2_filters.js'
+import * as Filters from './minigl_filters.js'
 
 
 export function minigl(canvas,img,colorspace) {
