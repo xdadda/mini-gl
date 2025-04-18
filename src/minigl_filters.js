@@ -1,4 +1,4 @@
-import { Shader, Texture } from './minigl2.js'
+import { Shader, Texture } from './minigl.js'
 
 
 export function filterMatrix(mini,params){

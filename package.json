@@ -1,10 +1,13 @@
 {
   "name": "@xdadda/mini-gl",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "webgl2 image editing library",
   "main": "minigl.js",
   "type": "module",
   "sideEffects": false,
+  "scripts": {
+    "build": "vite build"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/xdadda/mini-gl.git"
@@ -21,8 +24,14 @@
   "bugs": {
     "url": "https://github.com/xdadda/mini-gl/issues"
   },
+  "devDependencies": {
+    "vite": "^6.2.2"
+  },
   "homepage": "https://github.com/xdadda/mini-gl#readme",
   "exports": {
-    ".": "./minigl.js"
+    ".": {
+      "import": "./dist/mini-gl.js",
+      "require": "./dist/mini-gl.umd.cjs"
+    }
   }
 }
