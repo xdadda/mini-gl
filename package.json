@@ -1,0 +1,28 @@
+{
+  "name": "@xdadda/mini-gl",
+  "version": "0.1.0",
+  "description": "webgl2 image editing library",
+  "main": "minigl.js",
+  "type": "module",
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xdadda/mini-gl.git"
+  },
+  "keywords": [
+    "WebGL",
+    "filters",
+    "photo",
+    "image",
+    "editor"
+  ],
+  "author": "xdadda",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/xdadda/mini-gl/issues"
+  },
+  "homepage": "https://github.com/xdadda/mini-gl#readme",
+  "exports": {
+    ".": "./minigl.js"
+  }
+}
