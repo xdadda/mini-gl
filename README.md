@@ -6,5 +6,5 @@ Inspired and partially based on glfx.js by Evan Wallace (https://github.com/evan
 <br>
 
 Demo https://mini2-photo-editor.netlify.app 
-(src https://github.com/xdadda/mini-image-editor)
+(src https://github.com/xdadda/mini-photo-editor)
 
