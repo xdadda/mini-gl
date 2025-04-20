@@ -100,7 +100,9 @@ export function minigl(canvas,img,colorspace) {
     setupFiltersTextures()
   }
 
-  function captureImage(){
+  //type: A string indicating the image format. The default type is image/png
+  //quality: A Number between 0 and 1 indicating the image quality to be used with lossy compression
+  function captureImage(type, quality){
       runFilter(defaultShader,{})
       const {width,height}=gl.canvas
       const length = width * height * 4;
@@ -108,7 +110,7 @@ export function minigl(canvas,img,colorspace) {
       gl.readPixels(0,0,width,height,gl.RGBA,gl.UNSIGNED_BYTE,data);
       const colorspace=gl.unpackColorSpace
       const imgdata = new ImageData(new Uint8ClampedArray(data.buffer), width, height, { colorSpace: colorspace})
-      return imagedata_to_image(imgdata,colorspace)
+      return imagedata_to_image(imgdata,colorspace, type,quality)
   }
 
   const minigl= {
@@ -306,7 +308,7 @@ export function Texture(gl, width, height) {
     return {use, destroy, drawTo, loadImage, initFromBytes}
 }
 
-function imagedata_to_image(imagedata,colorspace) {
+function imagedata_to_image(imagedata, colorspace, type, quality) {
     const canvas = document.createElement('canvas');
     var ctx = canvas.getContext('2d',{ colorSpace: colorspace });
     canvas.width = imagedata.width;
@@ -314,7 +316,7 @@ function imagedata_to_image(imagedata,colorspace) {
     ctx.putImageData(imagedata, 0, 0);
 
     var image = new Image();
-    image.src = canvas.toDataURL("image/jpeg",0.9);
+    image.src = canvas.toDataURL(type, quality);
     return image;
 }
 
