@@ -100,30 +100,32 @@ export function minigl(canvas,img,colorspace) {
     setupFiltersTextures()
   }
 
-  //type: A string indicating the image format. The default type is image/png
-  //quality: A Number between 0 and 1 indicating the image quality to be used with lossy compression
+  //type: String - indicating the image format. The default type is image/png
+  //quality: Number - between 0 and 1 indicating the image quality to be used with lossy compression
+  //returns Image
   function captureImage(type, quality){
       runFilter(defaultShader,{})
       const {width,height}=gl.canvas
       const length = width * height * 4;
       const data = new Uint8Array(length);
       gl.readPixels(0,0,width,height,gl.RGBA,gl.UNSIGNED_BYTE,data);
+      //note: data.buffer contains raw pixel ArrayBuffer (for future reference to feed an image compressor)
       const colorspace=gl.unpackColorSpace
       const imgdata = new ImageData(new Uint8ClampedArray(data.buffer), width, height, { colorSpace: colorspace})
-      return imagedata_to_image(imgdata,colorspace, type,quality)
+      return imagedata_to_image(imgdata, colorspace, type,quality)
   }
 
   const minigl= {
     gl,
     img,
     destroy,
-    setupFiltersTextures,
     loadImage,
-    runFilter,
     paintCanvas,
     crop,
     resetCrop,
     captureImage,
+    runFilter,
+    setupFiltersTextures,
     _:{} //for filters' storage
    }
 
