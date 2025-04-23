@@ -79,23 +79,23 @@ import { minigl} from '@xdadda/mini-gl'
 
 ## Other functions
 
+Destroy textures and clear memory:  
 ```js
 _wgl.destroy()
 ```
-Destroy textures and clear memory  
 
+Generate an Image element from the current render:  
 ```js
 _wgl.captureImage()
 ```
-Generate an Image element from the current render  
 
+Crop image:  
 ```js
 _wgl.crop({left, top, width, height})
 ```
-Crop image  
 
+Clear crop and restore original image:  
 ```js
 _wgl.resetCrop()
 ```
-Clear crop and restore original image  
 

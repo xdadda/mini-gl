@@ -1,7 +1,7 @@
 {
   "name": "@xdadda/mini-gl",
   "version": "0.1.5",
-  "description": "webgl2 image editing library",
+  "description": "webgl image editing library with filters and effects",
   "main": "minigl.js",
   "type": "module",
   "sideEffects": false,
