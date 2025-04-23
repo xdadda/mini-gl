@@ -22,15 +22,17 @@ import { minigl} from '@xdadda/mini-gl'
 ```
  
  
-# Constructor 
- 
-`const _wgl = minigl(canvas,image,colorspace)`
+## Constructor 
+
+```js
+      const _wgl = minigl(canvas,image,colorspace)
+```
 * `canvas`: is the destination [HTMLCanvasElement](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement) on which minigl will render the image
 * `image`: is the source [HTMLImageElement](https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElemen) with the original image
 * `colorspace`: specifies the color space of the rendering context ('srg'|'display-p3'); the image's colorspace can be extracted from the file's ICC profile metadata ([@xdadda/mini-exif](https://github.com/xdadda/mini-exif))
 
 
-# Render chain
+## Render chain
 
 1. Load original image texture in memory
 ```js
@@ -75,17 +77,25 @@ import { minigl} from '@xdadda/mini-gl'
       _wgl.paintCanvas()
 ```
 
-# Other functions
+## Other functions
 
-Destroy textures and clear memory
-`_wgl.destroy()`
+```js
+_wgl.destroy()
+```
+Destroy textures and clear memory  
 
-Generate an Image element from the current render
-`_wgl.captureImage()`
+```js
+_wgl.captureImage()
+```
+Generate an Image element from the current render  
 
-Crop image
-`_wgl.crop({left, top, width, height})`
+```js
+_wgl.crop({left, top, width, height})
+```
+Crop image  
 
-Clear crop and restore original image
-`_wgl.resetCrop()`
+```js
+_wgl.resetCrop()
+```
+Clear crop and restore original image  
 
