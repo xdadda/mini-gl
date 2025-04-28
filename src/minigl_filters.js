@@ -790,7 +790,6 @@ export function filterCurves(mini, array) {
 
 
         const {gl, img}=mini
-        const {width,height} = img
         mini._.$warp = mini._.$warp || new Shader(gl, null, _fragment);
 
         // Flatten all members of matrix into one big list
@@ -806,7 +805,7 @@ export function filterCurves(mini, array) {
             throw 'can only warp with 2x2 or 3x3 matrix';
         }
     
-        const uResolution = [width,height];
+        const uResolution = [gl.canvas.width,gl.canvas.height];
         mini.runFilter(mini._.$warp, { 
           matrix: inverse ? getInverse(matrix) : matrix,
           uResolution,
