@@ -64,7 +64,7 @@ import { minigl} from '@xdadda/mini-gl'
       _wgl.filterHighlightsShadows(0.2,0.3)
 
       // CURVES filter
-      // input: Array of 'curves' for LUMINANCE, RED, GREEN, BLUE
+      // input: Array of 'curves' for RGB/Luminance, RED, GREEN, BLUE
       // where a 'curve' is an array of points (x,y) across which a spline is interpolated
       // (x,y) represent the value mapping, from x to y
       // a 'curve' can be null to signify a linear interpolation

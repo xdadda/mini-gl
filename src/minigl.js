@@ -5,6 +5,7 @@
 
 import * as Filters from './minigl_filters.js'
 
+export {Spline} from './cubicspline.js'
 
 export function minigl(canvas,img,colorspace) {
   let gl = canvas.getContext("webgl2",{ antialias:false, premultipliedAlpha: true, })

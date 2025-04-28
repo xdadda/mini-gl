@@ -1,4 +1,5 @@
 import { Shader, Texture } from './minigl.js'
+import { Spline } from './cubicspline.js'
 
 
 export function filterMatrix(mini,params){
@@ -274,52 +275,6 @@ export function filterAdjustments(mini, effects) {
       //setup and run effect
       mini._.$adj = mini._.$adj || new Shader(gl, null, _fragment)
       mini.runFilter(mini._.$adj, {uColorMatrix, uColorOffset, uColorGamma:1/gamma, uClarityKernel, uClarityKernelWeight, uTextureSize, uVibrance, uColorVignette, uVignettePos})
-}
-
-//red,green,blue   arrays [[0,0],...,[1,1]] describing channel curve
-export function filterCurves(mini, array) {
-  //console.log('filterCurves')
-    if(array.every(e=>e===null)) return //console.error('curves: need at least one array')
-    if(!array[0]) array[0]=[[0,0],[0.25,0.25],[0.75,0.75],[1,1]] //linear identity curve
-    let red=array[1]||array[0];
-    let green=array[2]||array[0];
-    let blue=array[3]||array[0];
-
-    red = splineInterpolate(red);
-    green = splineInterpolate(green);
-    blue = splineInterpolate(blue);
-    if(red.length!==256 || green.length!==256 || blue.length!==256) return console.error('curves: input unknown')
-
-    var array = [];
-    for (var i = 0; i < 256; i++) {
-        array.splice(array.length, 0, red[i], green[i], blue[i], 255);
-    }    
-
-    const _fragment = `#version 300 es
-        precision highp float;
-
-        in vec2 texCoord;
-        uniform sampler2D _texture;
-        out vec4 outColor;
-
-        uniform sampler2D curvemap;
-
-        void main() {
-            vec4 color = texture(_texture, texCoord);
-            color.r = texture(curvemap, vec2(color.r)).r;
-            color.g = texture(curvemap, vec2(color.g)).g;
-            color.b = texture(curvemap, vec2(color.b)).b;
-            outColor = color;
-        }
-      `
-
-    const {gl}=mini
-    //setup and run effect
-    mini._.$curvestexture = mini._.$curvestexture || new Texture(gl);
-    mini._.$curvestexture.initFromBytes(256, 1, array);
-    mini._.$curvestexture.use(2);
-    mini._.$curves = mini._.$curves || new Shader(gl, null, _fragment);
-    mini.runFilter(mini._.$curves, {curvemap:{unit:2}} )
 }
 
 export function filterHighlightsShadows(mini,val1,val2){
@@ -735,6 +690,142 @@ export function filterInsta(mini, opt, mix){
 }
 
 
+    function splineInterpolate(points) {
+        var spline = new Spline(points);
+        var curve = [];
+        for (var i = 0; i < 256; i++) {
+            curve.push(clamp(0, Math.floor(spline.at(i / 255) * 256), 255));
+        }
+        return curve;
+    }
+
+//red,green,blue   arrays [[0,0],...,[1,1]] describing channel curve
+export function filterCurves(mini, array) {
+  //console.log('filterCurves')
+    if(array.every(e=>e===null)) return //console.error('curves: need at least one array')
+    if(!array[0]) array[0]=[[0,0],[1,1]] //linear identity curve
+    let red=array[1]||array[0];
+    let green=array[2]||array[0];
+    let blue=array[3]||array[0];
+    red = splineInterpolate(red);
+    green = splineInterpolate(green);
+    blue = splineInterpolate(blue);
+    if(red.length!==256 || green.length!==256 || blue.length!==256) return console.error('curves: input unknown')
+
+    var array = [];
+    for (var i = 0; i < 256; i++) {
+        array.splice(array.length, 0, red[i], green[i], blue[i], 255);
+    }    
+
+    const _fragment = `#version 300 es
+        precision highp float;
+
+        in vec2 texCoord;
+        uniform sampler2D _texture;
+        out vec4 outColor;
+
+        uniform sampler2D curvemap;
+
+        void main() {
+            vec4 color = texture(_texture, texCoord);
+            color.r = texture(curvemap, vec2(color.r)).r;
+            color.g = texture(curvemap, vec2(color.g)).g;
+            color.b = texture(curvemap, vec2(color.b)).b;
+            outColor = color;
+        }
+      `
+
+    const {gl}=mini
+    //setup and run effect
+    mini._.$curvestexture = mini._.$curvestexture || new Texture(gl);
+    mini._.$curvestexture.initFromBytes(256, 1, array);
+    mini._.$curvestexture.use(2);
+    mini._.$curves = mini._.$curves || new Shader(gl, null, _fragment);
+    mini.runFilter(mini._.$curves, {curvemap:{unit:2}} )
+}
+
+
+
+    /**
+     * @filter                Matrix Warp
+     * @description           Transforms an image by a 2x2 or 3x3 matrix. The coordinates used in
+     *                        the transformation are (x, y) for a 2x2 matrix or (x, y, 1) for a
+     *                        3x3 matrix, where x and y are in units of pixels.
+     * @param matrix          A 2x2 or 3x3 matrix represented as either a list or a list of lists.
+     *                        For example, the 3x3 matrix [[2,0,0],[0,3,0],[0,0,1]] can also be
+     *                        represented as [2,0,0,0,3,0,0,0,1] or just [2,0,0,3].
+     * @param inverse         A boolean value that, when true, applies the inverse transformation
+     *                        instead. (optional, defaults to false)
+     * @param useTextureSpace A boolean value that, when true, uses texture-space coordinates
+     *                        instead of screen-space coordinates. Texture-space coordinates range
+     *                        from -1 to 1 instead of 0 to width - 1 or height - 1, and are easier
+     *                        to use for simple operations like flipping and rotating.
+     */
+    function matrixWarp(mini, matrix, inverse, useTextureSpace) {
+
+        const _fragment = `#version 300 es
+            precision highp float;
+
+            in vec2 texCoord;
+            uniform sampler2D _texture;
+            uniform vec2 uResolution;
+            uniform mat3 matrix;
+            uniform bool useTextureSpace;
+            out vec4 outColor;
+
+            void main() {
+                vec2 coord = texCoord * uResolution;
+                if (useTextureSpace) coord = coord / uResolution * 2.0 - 1.0;
+                vec3 warp = matrix * vec3(coord, 1.0);
+                coord = warp.xy / warp.z;
+                if (useTextureSpace) coord = (coord * 0.5 + 0.5) * uResolution;
+                vec4 color = texture(_texture, coord / uResolution);
+                vec2 clampedCoord = clamp(coord, vec2(0.0), uResolution);
+                if (coord != clampedCoord) {
+                    color.a *= max(0.0, 1.0 - length(coord - clampedCoord));
+                }
+                outColor = color;
+            }
+          `
+
+
+        const {gl, img}=mini
+        const {width,height} = img
+        mini._.$warp = mini._.$warp || new Shader(gl, null, _fragment);
+
+        // Flatten all members of matrix into one big list
+        matrix = Array.prototype.concat.apply([], matrix);
+        // Extract a 3x3 matrix out of the arguments
+        if (matrix.length == 4) {
+            matrix = [
+                matrix[0], matrix[1], 0,
+                matrix[2], matrix[3], 0,
+                0, 0, 1
+            ];
+        } else if (matrix.length != 9) {
+            throw 'can only warp with 2x2 or 3x3 matrix';
+        }
+    
+        const uResolution = [width,height];
+        mini.runFilter(mini._.$warp, { 
+          matrix: inverse ? getInverse(matrix) : matrix,
+          uResolution,
+          useTextureSpace: useTextureSpace | 0
+        });
+    }
+
+
+export function filterPerspective(mini, before, after, inverse, useTextureSpace ) {
+
+  before=before.flat()
+  after=after.flat()
+  var a = getSquareToQuad.apply(null, after);
+  var b = getSquareToQuad.apply(null, before);
+  var c = multiply(getInverse(a), b);
+  return matrixWarp(mini, c, inverse, useTextureSpace);
+}
+
+
 ///////// UTILITY FUNCTIONS ////////////////////
   function clamp(lo, value, hi) {
       return Math.max(lo, Math.min(value, hi));
@@ -826,84 +917,47 @@ export function filterInsta(mini, opt, mix){
       return C
   }
 
-  function splineInterpolate(points) {
-      var interpolator = new SplineInterpolator(points);
-      var array = [];
-      for (var i = 0; i < 256; i++) {
-          array.push(clamp(0, Math.floor(interpolator.interpolate(i / 255) * 256), 255));
-      }
-      return array;
-  }
-  function SplineInterpolator(points) {
-      var n = points.length;
-      this.xa = [];
-      this.ya = [];
-      this.u = [];
-      this.y2 = [];
 
-      points.sort(function(a, b) {
-          return a[0] - b[0];
-      });
-      for (var i = 0; i < n; i++) {
-          this.xa.push(points[i][0]);
-          this.ya.push(points[i][1]);
-      }
+// from javax.media.jai.PerspectiveTransform
+function getSquareToQuad(x0, y0, x1, y1, x2, y2, x3, y3) {
+    var dx1 = x1 - x2;
+    var dy1 = y1 - y2;
+    var dx2 = x3 - x2;
+    var dy2 = y3 - y2;
+    var dx3 = x0 - x1 + x2 - x3;
+    var dy3 = y0 - y1 + y2 - y3;
+    var det = dx1*dy2 - dx2*dy1;
+    var a = (dx3*dy2 - dx2*dy3) / det;
+    var b = (dx1*dy3 - dx3*dy1) / det;
+    return [
+        x1 - x0 + a*x1, y1 - y0 + a*y1, a,
+        x3 - x0 + b*x3, y3 - y0 + b*y3, b,
+        x0, y0, 1
+    ];
+}
 
-      this.u[0] = 0;
-      this.y2[0] = 0;
+function getInverse(m) {
+    var a = m[0], b = m[1], c = m[2];
+    var d = m[3], e = m[4], f = m[5];
+    var g = m[6], h = m[7], i = m[8];
+    var det = a*e*i - a*f*h - b*d*i + b*f*g + c*d*h - c*e*g;
+    return [
+        (e*i - f*h) / det, (c*h - b*i) / det, (b*f - c*e) / det,
+        (f*g - d*i) / det, (a*i - c*g) / det, (c*d - a*f) / det,
+        (d*h - e*g) / det, (b*g - a*h) / det, (a*e - b*d) / det
+    ];
+}
 
-      for (var i = 1; i < n - 1; ++i) {
-          // This is the decomposition loop of the tridiagonal algorithm. 
-          // y2 and u are used for temporary storage of the decomposed factors.
-          var wx = this.xa[i + 1] - this.xa[i - 1];
-          var sig = (this.xa[i] - this.xa[i - 1]) / wx;
-          var p = sig * this.y2[i - 1] + 2.0;
-
-          this.y2[i] = (sig - 1.0) / p;
-
-          var ddydx = 
-              (this.ya[i + 1] - this.ya[i]) / (this.xa[i + 1] - this.xa[i]) - 
-              (this.ya[i] - this.ya[i - 1]) / (this.xa[i] - this.xa[i - 1]);
-
-          this.u[i] = (6.0 * ddydx / wx - sig * this.u[i - 1]) / p;
-      }
-
-      this.y2[n - 1] = 0;
-
-      // This is the backsubstitution loop of the tridiagonal algorithm
-      for (var i = n - 2; i >= 0; --i) {
-          this.y2[i] = this.y2[i] * this.y2[i + 1] + this.u[i];
-      }
-  }
-
-  SplineInterpolator.prototype.interpolate = function(x) {
-      var n = this.ya.length;
-      var klo = 0;
-      var khi = n - 1;
-
-      // We will find the right place in the table by means of
-      // bisection. This is optimal if sequential calls to this
-      // routine are at random values of x. If sequential calls
-      // are in order, and closely spaced, one would do better
-      // to store previous values of klo and khi.
-      while (khi - klo > 1) {
-          var k = (khi + klo) >> 1;
-
-          if (this.xa[k] > x) {
-              khi = k; 
-          } else {
-              klo = k;
-          }
-      }
-
-      var h = this.xa[khi] - this.xa[klo];
-      var a = (this.xa[khi] - x) / h;
-      var b = (x - this.xa[klo]) / h;
-
-      // Cubic spline polynomial is now evaluated.
-      return a * this.ya[klo] + b * this.ya[khi] + 
-          ((a * a * a - a) * this.y2[klo] + (b * b * b - b) * this.y2[khi]) * (h * h) / 6.0;
-  };
-
-
-
+function multiply(a, b) {
+    return [
+        a[0]*b[0] + a[1]*b[3] + a[2]*b[6],
+        a[0]*b[1] + a[1]*b[4] + a[2]*b[7],
+        a[0]*b[2] + a[1]*b[5] + a[2]*b[8],
+        a[3]*b[0] + a[4]*b[3] + a[5]*b[6],
+        a[3]*b[1] + a[4]*b[4] + a[5]*b[7],
+        a[3]*b[2] + a[4]*b[5] + a[5]*b[8],
+        a[6]*b[0] + a[7]*b[3] + a[8]*b[6],
+        a[6]*b[1] + a[7]*b[4] + a[8]*b[7],
+        a[6]*b[2] + a[7]*b[5] + a[8]*b[8]
+    ];
+}
