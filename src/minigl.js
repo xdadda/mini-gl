@@ -4,15 +4,19 @@
 */
 
 import * as Filters from './minigl_filters.js'
+export {Spline} from './filters/cubicspline.js'
 
-export {Spline} from './cubicspline.js'
+const usesrgb=true //to guarantee gamma correct workflow, SRGB in input - processing is linear - SRGB in output
 
 export function minigl(canvas,img,colorspace) {
   let gl = canvas.getContext("webgl2",{ antialias:false, premultipliedAlpha: true, })
   if (!gl) return console.error("webgl2 not supported!")
   if(colorspace==="display-p3") {
     gl.drawingBufferColorSpace = "display-p3";
-    gl.unpackColorSpace = "display-p3";        
+    gl.unpackColorSpace = "display-p3";
+  } else {
+    gl.drawingBufferColorSpace = "srgb";
+    gl.unpackColorSpace = "srgb";
   }
 
   //update canvas size to image for full resolution. Use style to change visible sizes
@@ -116,6 +120,15 @@ export function minigl(canvas,img,colorspace) {
       return imagedata_to_image(imgdata, colorspace, type,quality)
   }
 
+  function readPixels(){
+      runFilter(defaultShader,{})
+      const {width,height}=gl.canvas
+      const length = width * height * 4;
+      const data = new Uint8Array(length);
+      gl.readPixels(0,0,width,height,gl.RGBA,gl.UNSIGNED_BYTE,data);
+      return data
+  }
+
   const minigl= {
     gl,
     img,
@@ -125,6 +138,7 @@ export function minigl(canvas,img,colorspace) {
     crop,
     resetCrop,
     captureImage,
+    readPixels,
     runFilter,
     setupFiltersTextures,
     _:{} //for filters' storage
@@ -139,11 +153,32 @@ export function minigl(canvas,img,colorspace) {
   return minigl
 }
 
-const flippedFragmentSource = `#version 300 es
+const flippedFragmentSource = usesrgb ? 
+      `#version 300 es
         precision highp float;
         in vec2 texCoord;
         uniform sampler2D _texture;
         out vec4 outColor;
+
+        vec4 fromLinear(vec4 linearRGB)
+        {
+            vec3 cutoff = vec3(lessThan(linearRGB.rgb, vec3(0.0031308)));
+            vec3 higher = vec3(1.055)*pow(linearRGB.rgb, vec3(1.0/2.4)) - vec3(0.055);
+            vec3 lower = linearRGB.rgb * vec3(12.92);
+            return vec4(higher * (vec3(1.0) - cutoff) + lower * cutoff, linearRGB.a);
+        }
+
+        void main() {
+            vec4 color = texture(_texture, vec2(texCoord.x, 1.0 - texCoord.y));
+            //outColor = color;
+            outColor = fromLinear(color);
+        }` : 
+      `#version 300 es
+        precision highp float;
+        in vec2 texCoord;
+        uniform sampler2D _texture;
+        out vec4 outColor;
+
         void main() {
             outColor = texture(_texture, vec2(texCoord.x, 1.0 - texCoord.y));
         }`
@@ -197,7 +232,6 @@ export function Shader(gl,vertexSrc,fragmentSrc) {
       gl.bufferData(
         gl.ARRAY_BUFFER,
         new Float32Array([ left, top, left, bottom, right, top, right, bottom ]),
-        //new Float32Array([0, 0, 0, 1, 1, 0, 1, 1]),
         gl.STATIC_DRAW
       )
       if(!vertex) {
@@ -271,7 +305,10 @@ export function Texture(gl, width, height) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
     //if size provided, create blank texture
-    if (width && height) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+    const internalFormat = usesrgb ? gl.SRGB8_ALPHA8 : gl.RGBA
+    if (width && height) gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    //if (width && height) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
 
     function use(unit=0){
       if(!txt) return console.error('texture has been destroyed')
@@ -294,18 +331,25 @@ export function Texture(gl, width, height) {
       //sets the conversion from normalized device coordinates/ clip space to pixel space
       gl.viewport(0,0,_width,_height)
     }
-    function loadImage(img){
+    function loadImage(img, format){
       if(!txt) return console.error('texture has been destroyed')
       _width=img.width
       _height=img.height
       gl.bindTexture(gl.TEXTURE_2D, txt)
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img)
+
+      let internalFormat = format || (usesrgb ? gl.SRGB8_ALPHA8 : gl.RGBA)
+      gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, gl.RGBA, gl.UNSIGNED_BYTE, img)
+      //gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img)
+      //gl.texImage2D(gl.TEXTURE_2D, 0, gl.SRGB8_ALPHA8, gl.RGBA, gl.UNSIGNED_BYTE, img)
     }
-    function initFromBytes(width, height, data) {
+    function initFromBytes(width, height, data, format) {
       _width=width
       _height=height
       gl.bindTexture(gl.TEXTURE_2D, txt);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(data));
+      let internalFormat = format || (usesrgb ? gl.SRGB8_ALPHA8 : gl.RGBA)
+      //console.log('initFromBytes',internalFormat)
+      gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(data));
+      //gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(data));
     };
     
     return {use, destroy, drawTo, loadImage, initFromBytes}

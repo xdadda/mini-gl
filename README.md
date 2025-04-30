@@ -3,7 +3,7 @@ A small webgl2 library to edit images and apply filters.
  
 Inspired and partially based on [glfx.js](https://github.com/evanw/glfx.js) by Evan Wallace 
  
- 
+Note: the library adopts a sRGB correct workflow. Keep in mind if adding new shaders/ filters.
  
 Demo https://mini2-photo-editor.netlify.app 
 (src https://github.com/xdadda/mini-photo-editor)
