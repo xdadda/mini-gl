@@ -4,21 +4,20 @@ export function filterInsta(mini, opt, mix){
   //console.log('filterInsta',opt,mix)
   const {gl} = mini
   mix+=1
-  const srgb_linear_fn = `
-        vec3 fromLinear(vec3 linearRGB) {
-            vec3 cutoff = vec3(lessThan(linearRGB.rgb, vec3(0.0031308)));
-            vec3 higher = vec3(1.055)*pow(linearRGB.rgb, vec3(1.0/2.4)) - vec3(0.055);
-            vec3 lower = linearRGB.rgb * vec3(12.92);
-            return higher * (vec3(1.0) - cutoff) + lower * cutoff;
-        }
 
-        vec3 toLinear(vec3 sRGB){
-            vec3 cutoff = vec3(lessThan(sRGB.rgb, vec3(0.04045)));
-            vec3 higher = pow((sRGB.rgb + vec3(0.055))/vec3(1.055), vec3(2.4));
-            vec3 lower = sRGB.rgb/vec3(12.92);
-            return higher * (vec3(1.0) - cutoff) + lower * cutoff;
-        }
-  `
+  const srgb_linear_fn = `
+    vec3 fromLinear(vec3 linearRGB) {
+        bvec3 cutoff = lessThan(linearRGB.rgb, vec3(0.0031308));
+        vec3 higher = vec3(1.055)*pow(linearRGB.rgb, vec3(1.0/2.4)) - vec3(0.055);
+        vec3 lower = linearRGB.rgb * vec3(12.92);
+        return vec3(mix(higher, lower, cutoff));
+    }
+    vec3 toLinear(vec3 sRGB) {
+        bvec3 cutoff = lessThan(sRGB.rgb, vec3(0.04045));
+        vec3 higher = pow((sRGB.rgb + vec3(0.055))/vec3(1.055), vec3(2.4));
+        vec3 lower = sRGB.rgb/vec3(12.92);
+        return vec3(mix(higher, lower, cutoff));
+    }`
 
   if(opt.type==='1'){
     /// SHADER 1: vertical LUT 33x10889px

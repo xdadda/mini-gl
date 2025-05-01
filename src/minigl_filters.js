@@ -4,6 +4,7 @@ export { filterMatrix } from './filters/filterMatrix.js'
 export { filterInsta } from './filters/filterInsta.js'
 export { filterCurves } from './filters/filterCurves.js'
 export { filterPerspective } from './filters/filterPerspective.js'
+export { filterBlend } from './filters/filterBlend.js'
 
 
 export function filterAdjustments(mini, effects) {
@@ -76,25 +77,8 @@ export function filterAdjustments(mini, effects) {
             return vec4(c.rgb*v,c.a);
         }
 
-  vec4 fromLinear(vec4 linearRGB)
-  {
-      vec3 cutoff = vec3(lessThan(linearRGB.rgb, vec3(0.0031308)));
-      vec3 higher = vec3(1.055)*pow(linearRGB.rgb, vec3(1.0/2.4)) - vec3(0.055);
-      vec3 lower = linearRGB.rgb * vec3(12.92);
-      return vec4(higher * (vec3(1.0) - cutoff) + lower * cutoff, linearRGB.a);
-  }
-
-  vec4 toLinear(vec4 sRGB)
-  {
-      vec3 cutoff = vec3(lessThan(sRGB.rgb, vec3(0.04045)));
-      vec3 higher = pow((sRGB.rgb + vec3(0.055))/vec3(1.055), vec3(2.4));
-      vec3 lower = sRGB.rgb/vec3(12.92);
-      return vec4(higher * (vec3(1.0) - cutoff) + lower * cutoff, sRGB.a);
-  }
-
         void main() {
           vec4 color = texture(_texture, texCoord);
-          //color = toLinear(color);
           if (uClarityKernelWeight != -1.0) { 
             color = applyConvolutionMatrix(color, uClarityKernel[0], uClarityKernel[1], uClarityKernel[2], uClarityKernel[3], uClarityKernel[4], uClarityKernel[5], uClarityKernel[6], uClarityKernel[7], uClarityKernel[8], uClarityKernelWeight); 
           } 
@@ -106,7 +90,6 @@ export function filterAdjustments(mini, effects) {
             //color = vignette3(color, pos, uColorVignette);
             color = applyVignette2(color, pos, uColorVignette, uVignettePos);
           }
-          //color = fromLinear(color);
           outColor = color;
         }
       `
@@ -115,8 +98,8 @@ export function filterAdjustments(mini, effects) {
       const {width,height} = img
 
       let vignpos = [0,0]
-
-      let {brightness: b, contrast: c, saturation: s, exposure: e, temperature: t, gamma, clarity: l, vibrance, vignette, tint:tt, sepia:sp, gray:g} = effects
+      let {brightness: b=0, contrast: c=0, saturation: s=0, exposure: e=0, temperature: t=0, gamma=0, clarity: l=0, vibrance=0, vignette=0, tint:tt=0, sepia:sp=0} = effects
+      //some params adjustments to fit shader and user experience
       b=b/4;c=(c+1)/2+0.5;s=s+1;e=((e>0?e*3:e*1.5)+1)/2+0.5;gamma+=1;t*=2,tt*=2;
       
       let colormatrix={ //[r,g,b,a,w]

@@ -153,27 +153,26 @@ export function minigl(canvas,img,colorspace) {
   return minigl
 }
 
-const flippedFragmentSource = usesrgb ? 
-      `#version 300 es
+const flippedFragmentSource = usesrgb
+      ?`#version 300 es
         precision highp float;
         in vec2 texCoord;
         uniform sampler2D _texture;
         out vec4 outColor;
 
-        vec4 fromLinear(vec4 linearRGB)
-        {
-            vec3 cutoff = vec3(lessThan(linearRGB.rgb, vec3(0.0031308)));
+        vec4 fromLinear(vec4 linearRGB) {
+            bvec3 cutoff = lessThan(linearRGB.rgb, vec3(0.0031308));
             vec3 higher = vec3(1.055)*pow(linearRGB.rgb, vec3(1.0/2.4)) - vec3(0.055);
             vec3 lower = linearRGB.rgb * vec3(12.92);
-            return vec4(higher * (vec3(1.0) - cutoff) + lower * cutoff, linearRGB.a);
+            return vec4(mix(higher, lower, cutoff), linearRGB.a);
         }
 
         void main() {
             vec4 color = texture(_texture, vec2(texCoord.x, 1.0 - texCoord.y));
             //outColor = color;
             outColor = fromLinear(color);
-        }` : 
-      `#version 300 es
+        }`
+      :`#version 300 es
         precision highp float;
         in vec2 texCoord;
         uniform sampler2D _texture;
