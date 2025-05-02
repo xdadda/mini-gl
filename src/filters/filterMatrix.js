@@ -33,8 +33,8 @@ export function filterMatrix(mini,params){
         }
       ` 
 
-  //const {img} = gl._
-  if(gl.canvas.width===img.height){ //rotated canvas
+  //check if canvas is rotated using mini.height, as it's updated in case of crop or resize
+  if(gl.canvas.width===mini.height){ 
     const aspectratio = img.width/img.height    
     scale[0]*=aspectratio
     scale[1]/=aspectratio

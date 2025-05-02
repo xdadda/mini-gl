@@ -19,9 +19,28 @@ export function minigl(canvas,img,colorspace) {
     gl.unpackColorSpace = "srgb";
   }
 
+  const _minigl= {
+    width:0,
+    height:0,
+    gl,
+    img,
+    destroy,
+    loadImage,
+    paintCanvas,
+    crop,
+    resetCrop,
+    resize,
+    resetResize,
+    captureImage,
+    readPixels,
+    runFilter,
+    setupFiltersTextures,
+    _:{} //for filters' storage
+   }
+
   //update canvas size to image for full resolution. Use style to change visible sizes
-  gl.canvas.width=img.width
-  gl.canvas.height=img.height
+  gl.canvas.width=_minigl.width=img.width
+  gl.canvas.height=_minigl.height=img.height
  
   //create IMAGE TEXTURE && load image
   const imageTexture = new Texture(gl)
@@ -38,7 +57,7 @@ export function minigl(canvas,img,colorspace) {
     if(textures?.length) textures.forEach(e=>e.destroy())
     textures=[]
     for (var ii = 0; ii < 2; ++ii) {
-      // make the blank texture the same size as the image
+      // make the blank texture the same size as the canvas
       const texture = new Texture(gl,gl.canvas.width, gl.canvas.height);
       textures.push(texture);
     }
@@ -75,22 +94,38 @@ export function minigl(canvas,img,colorspace) {
     flippedShader.drawRect()
   }
 
+
+  let resized = {width:0,height:0}
+  function resize(width,height){
+    gl.canvas.width=_minigl.width=resized.width = width
+    gl.canvas.height=_minigl.height=resized.height = height
+    setupFiltersTextures()
+  }
+  function resetResize(){
+    if(!resized.width) return
+    resized.width=resized.height=0
+    gl.canvas.width=_minigl.width= cropsize.width || img.width
+    gl.canvas.height=_minigl.height= cropsize.height || img.height
+    setupFiltersTextures()
+  }
+
   
   let croppedTexture
+  let cropsize = {width:0,height:0}
   function crop({left, top, width, height}){ 
-      //FIX FOR SAFARI & display-p3 bug (a direct GL->2D drawImage loses colorspace ... this is a workaround)
-      runFilter(defaultShader,{})
-
       const length = width * height * 4;
       const data = new Uint8Array(length);
+
+      //FIX FOR SAFARI & display-p3 bug (a direct GL->2D drawImage loses colorspace ... this is a workaround)
+      runFilter(defaultShader,{})
       gl.readPixels(left,top,width,height,gl.RGBA,gl.UNSIGNED_BYTE,data);
       const colorspace=gl.unpackColorSpace
       const imgdata_cropped = new ImageData(new Uint8ClampedArray(data.buffer), width, height, { colorSpace: colorspace})
 
       croppedTexture = new Texture(gl)
       croppedTexture.loadImage(imgdata_cropped)
-      gl.canvas.width=width
-      gl.canvas.height=height
+      gl.canvas.width=_minigl.width=cropsize.width = width
+      gl.canvas.height=_minigl.height=cropsize.height = height
       setupFiltersTextures()
       minigl.img_cropped = imagedata_to_image(imgdata_cropped,colorspace)
   }
@@ -99,8 +134,9 @@ export function minigl(canvas,img,colorspace) {
     if(!croppedTexture) return
     croppedTexture.destroy()
     croppedTexture=null
-    gl.canvas.width=img.width
-    gl.canvas.height=img.height
+    cropsize.width=cropsize.height=0
+    gl.canvas.width=_minigl.width= resized.width || img.width
+    gl.canvas.height=_minigl.height= resized.height || img.height
     delete minigl.img_cropped
     setupFiltersTextures()
   }
@@ -129,28 +165,15 @@ export function minigl(canvas,img,colorspace) {
       return data
   }
 
-  const minigl= {
-    gl,
-    img,
-    destroy,
-    loadImage,
-    paintCanvas,
-    crop,
-    resetCrop,
-    captureImage,
-    readPixels,
-    runFilter,
-    setupFiltersTextures,
-    _:{} //for filters' storage
-   }
+
 
   //load all filters
   function wrap(fn){
-    return function(...args){fn(minigl,...args)}
+    return function(...args){fn(_minigl,...args)}
   }
-  Object.keys(Filters).forEach(f=>minigl[f]=wrap(Filters[f]))
+  Object.keys(Filters).forEach(f=>_minigl[f]=wrap(Filters[f]))
 
-  return minigl
+  return _minigl
 }
 
 const flippedFragmentSource = usesrgb
