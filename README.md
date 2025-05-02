@@ -99,3 +99,14 @@ Clear crop and restore original image:
 _wgl.resetCrop()
 ```
 
+Resize image:  
+```js
+_wgl.resize({left, top, width, height})
+```
+
+Clear resize and restore original image:  
+```js
+_wgl.resetResize()
+```
+
+

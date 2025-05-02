@@ -68,7 +68,7 @@ export function minigl(canvas,img,colorspace) {
     if(textures?.length) textures.forEach(e=>e.destroy())
     if(croppedTexture) croppedTexture.destroy()
     imageTexture.destroy()
-    delete minigl.img_cropped
+    delete _minigl.img_cropped
   }
 
   let current_texture
@@ -127,7 +127,7 @@ export function minigl(canvas,img,colorspace) {
       gl.canvas.width=_minigl.width=cropsize.width = width
       gl.canvas.height=_minigl.height=cropsize.height = height
       setupFiltersTextures()
-      minigl.img_cropped = imagedata_to_image(imgdata_cropped,colorspace)
+      _minigl.img_cropped = imagedata_to_image(imgdata_cropped,colorspace)
   }
   
   function resetCrop(){
@@ -137,7 +137,7 @@ export function minigl(canvas,img,colorspace) {
     cropsize.width=cropsize.height=0
     gl.canvas.width=_minigl.width= resized.width || img.width
     gl.canvas.height=_minigl.height= resized.height || img.height
-    delete minigl.img_cropped
+    delete _minigl.img_cropped
     setupFiltersTextures()
   }
 
