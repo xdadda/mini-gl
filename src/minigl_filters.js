@@ -5,6 +5,7 @@ export { filterInsta } from './filters/filterInsta.js'
 export { filterCurves } from './filters/filterCurves.js'
 export { filterPerspective } from './filters/filterPerspective.js'
 export { filterBlend } from './filters/filterBlend.js'
+export { filterBlurBokeh } from './filters/filterBlurBokeh.js'
 
 
 export function filterAdjustments(mini, effects) {
@@ -94,8 +95,7 @@ export function filterAdjustments(mini, effects) {
         }
       `
 
-      const {gl,img} = mini
-      const {width,height} = img
+      const {gl} = mini
 
       let vignpos = [0,0]
       let {brightness: b=0, contrast: c=0, saturation: s=0, exposure: e=0, temperature: t=0, gamma=0, clarity: l=0, vibrance=0, vignette=0, tint:tt=0, sepia:sp=0} = effects
@@ -204,7 +204,7 @@ export function filterAdjustments(mini, effects) {
       //const {temperature,tint} = effects
       const uColorMatrix = cMatrix.flat();
       const uColorOffset = cOffset;
-      const uTextureSize = [width,height];
+      const uTextureSize = [gl.canvas.width,gl.canvas.height]; //[width,height];
       const uVibrance=vibrance;
       const uColorVignette=vignette;
       const uClarityKernel=claritykernel;
@@ -298,9 +298,8 @@ export function filterBloom(mini,val){
           outColor = 1.0-(1.0-color)*(1.0-Highlight*Intensity); //Screen Blend Mode
         }
   `
-    const {gl,img}=mini
-    const {width,height} = img
-    const uResolution = [width,height];
+    const {gl}=mini
+    const uResolution = [gl.canvas.width,gl.canvas.height]; //[width,height];
     mini._.$bloom = mini._.$bloom || new Shader(gl, null, _fragment);
     mini.runFilter(mini._.$bloom, { filterStrength: val, uResolution });
 }
@@ -361,22 +360,15 @@ export function filterNoise(mini,val){
           outColor = color;
         }
   `
-    const {gl,img}=mini
-    const {width,height} = img
-    const uResolution = [width,height];
+    const {gl}=mini
+    const uResolution = [gl.canvas.width,gl.canvas.height];// [width,height];
     mini._.$noise = mini._.$noise || new Shader(gl, null, _fragment);
     mini.runFilter(mini._.$noise, { filterStrength: val, uResolution });
 }
 
 
 
-
-
-
-
-
 ///////// UTILITY FUNCTIONS ////////////////////
-
 
   function multiplyM(A, B, N=3) {
       let C=[];
