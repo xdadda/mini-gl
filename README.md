@@ -12,7 +12,7 @@ Note: the library adopts a sRGB correct workflow. Keep in mind if adding new sha
 * color curves
 * insta filters
 * image blender
-* bokeh blur
+* bokeh/lens and gaussian blur
 * perspective correction
 * translate-rotate-scale matrix
 

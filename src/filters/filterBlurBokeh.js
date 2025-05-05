@@ -45,9 +45,10 @@ export function filterBlurBokeh(mini, params) {
             vec4 bcolor = vec4(Bokeh(_texture, texCoord, bokehstrength), 1.);
     
             //vignette used to control alpha
-            vec2 lensRadius = vec2(bokehlensout, bokehlensin);
+            //to blur inside circle smoothstep(lensin, lensout, dist)
+            //to blur outside circle smoothstep(lensout, lensin, dist)
             float dist = distance(texCoord.xy, vec2(centerX,centerY));
-            float vigfin = pow(1.-smoothstep(lensRadius.x, lensRadius.y, dist),2.);
+            float vigfin = pow(1.-smoothstep(bokehlensout, bokehlensin, dist),2.);
 
             outColor = mix( color, bcolor, vigfin);
         }
@@ -55,7 +56,8 @@ export function filterBlurBokeh(mini, params) {
 
     const {gl}=mini
     let { bokehstrength=0.5, bokehlensin=0, bokehlensout=0.5, centerX=0, centerY=0} = params ||{}
+    bokehlensout=bokehlensout||0.001; //can't be zero
     //setup and run effect
-    mini._.$circleblur = mini._.$circleblur || new Shader(gl, null, _fragment);
-    mini.runFilter(mini._.$circleblur, {bokehstrength,bokehlensin,bokehlensout,centerX,centerY} )
+    mini._.$lensblur = mini._.$lensblur || new Shader(gl, null, _fragment);
+    mini.runFilter(mini._.$lensblur, {bokehstrength,bokehlensin,bokehlensout,centerX,centerY} )
 }
