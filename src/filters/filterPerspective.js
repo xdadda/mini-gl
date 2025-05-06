@@ -36,7 +36,8 @@ import { Shader, Texture } from '../minigl.js'
                 vec4 color = texture(_texture, coord / uResolution);
                 vec2 clampedCoord = clamp(coord, vec2(0.0), uResolution);
                 if (coord != clampedCoord) {
-                    color.a *= max(0.0, 1.0 - length(coord - clampedCoord));
+                    //color.a *= max(0.0, 1.0 - length(coord - clampedCoord));
+                    color.a = 0.;
                 }
                 outColor = color;
             }

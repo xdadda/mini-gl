@@ -57,15 +57,14 @@ export function filterBlurGaussian(mini, params) {
             //to blur inside circle smoothstep(lensin, lensout, dist)
             //to blur outside circle smoothstep(lensout, lensin, dist)
             float dist = distance(texCoord.xy, vec2(centerX,centerY));
-            float vigfin = pow(1.-smoothstep(gaussianlensout, gaussianlensin, dist),2.);
+            float vigfin = pow(1.-smoothstep(max(0.001,gaussianlensout), gaussianlensin, dist),2.);
 
             outColor = mix( color, vec4(final_colour/(Z*Z), 1.0), vigfin);
         }
       `
 
     const {gl}=mini
-    let { gaussianstrength=0.5, gaussianlensin=0, gaussianlensout=0.5, centerX=0, centerY=0} = params ||{}
-    gaussianlensout=gaussianlensout||0.001; //can't be zero
+    let { gaussianstrength=0.5, gaussianlensin=0, gaussianlensout=0.5, centerX=0, centerY=0} = params || {}
     const uResolution = [gl.canvas.width,gl.canvas.height];
     //setup and run effect
 

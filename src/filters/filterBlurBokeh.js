@@ -48,15 +48,14 @@ export function filterBlurBokeh(mini, params) {
             //to blur inside circle smoothstep(lensin, lensout, dist)
             //to blur outside circle smoothstep(lensout, lensin, dist)
             float dist = distance(texCoord.xy, vec2(centerX,centerY));
-            float vigfin = pow(1.-smoothstep(bokehlensout, bokehlensin, dist),2.);
+            float vigfin = pow(1.-smoothstep(max(0.001,bokehlensout), bokehlensin, dist),2.);
 
             outColor = mix( color, bcolor, vigfin);
         }
       `
 
     const {gl}=mini
-    let { bokehstrength=0.5, bokehlensin=0, bokehlensout=0.5, centerX=0, centerY=0} = params ||{}
-    bokehlensout=bokehlensout||0.001; //can't be zero
+    let { bokehstrength=0.5, bokehlensin=0, bokehlensout=0.5, centerX=0, centerY=0} = params || {}
     //setup and run effect
     mini._.$lensblur = mini._.$lensblur || new Shader(gl, null, _fragment);
     mini.runFilter(mini._.$lensblur, {bokehstrength,bokehlensin,bokehlensout,centerX,centerY} )
